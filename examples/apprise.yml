@@ -1,0 +1,4 @@
+version: 1
+
+urls:
+  - "mailto://example.com:25?smtp=smtp.example.com&from=bookstack@example.com&to=admin@example.com"

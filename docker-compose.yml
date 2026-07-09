@@ -1,0 +1,11 @@
+services:
+  bookstack-notify-transformer:
+    image: ghcr.io/bezibaerchen/bookstack-notify-transformer:latest
+    container_name: bookstack-notify-transformer
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    ports:
+      - "8080:8080"
