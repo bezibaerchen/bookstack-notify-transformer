@@ -1,11 +1,13 @@
 # BookStack Notify Transformer
 
-> Transform BookStack webhooks into rich Apprise notifications by enriching events via the BookStack REST API.
+> Transform BookStack webhooks into rich Apprise notifications by enriching events through the BookStack REST API.
 
-![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)
-![License](https://img.shields.io/github/license/bezibaerchen/bookstack-notify-transformer)
-![GitHub last commit](https://img.shields.io/github/last-commit/bezibaerchen/bookstack-notify-transformer)
+[![CI and Docker](https://github.com/bezibaerchen/bookstack-notify-transformer/actions/workflows/docker.yml/badge.svg)](https://github.com/bezibaerchen/bookstack-notify-transformer/actions/workflows/docker.yml)
+[![Latest Release](https://img.shields.io/github/v/release/bezibaerchen/bookstack-notify-transformer)](https://github.com/bezibaerchen/bookstack-notify-transformer/releases)
+[![Python](https://img.shields.io/badge/Python-3.12+-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://github.com/bezibaerchen/bookstack-notify-transformer/pkgs/container/bookstack-notify-transformer)
+[![License](https://img.shields.io/github/license/bezibaerchen/bookstack-notify-transformer)](LICENSE)
+[![GitHub last commit](https://img.shields.io/github/last-commit/bezibaerchen/bookstack-notify-transformer)](https://github.com/bezibaerchen/bookstack-notify-transformer/commits/main)
 
 ---
 
@@ -13,51 +15,55 @@
 
 BookStack provides webhooks for many events, but some webhook payloads intentionally contain only minimal information.
 
-For example, the `comment_create` webhook contains only IDs and metadata, but not:
+For example, the `comment_create` webhook contains IDs and metadata, but not necessarily all information required for a useful notification, such as:
 
 - the page title
 - the page URL
 - the actual comment text
 
-This project automatically enriches incoming webhook events by querying the BookStack REST API before forwarding a clean, human-friendly notification to an Apprise API endpoint.
+BookStack Notify Transformer receives the webhook, retrieves additional information from the BookStack REST API and forwards a clean, human-friendly notification to an Apprise API endpoint.
 
-The result is rich notifications that are immediately useful without requiring additional scripting.
+This makes webhook notifications immediately useful without requiring additional scripts or custom automation.
 
 ---
 
 ## Features
 
-- Supports BookStack webhooks
-- Automatic REST API enrichment
-- Rich notifications via Apprise
-- Docker ready
+- BookStack webhook receiver
+- Automatic enrichment through the BookStack REST API
+- Rich notifications through Apprise
+- Support for email, Telegram, Discord, Microsoft Teams, Slack and many other services
 - Lightweight Flask application
-- Health endpoint
-- Clean Python package structure
+- Docker and Docker Compose support
+- Health-check endpoint
+- Structured Python package
+- Automated tests
+- Automated container builds through GitHub Actions
+- Published container images through GitHub Container Registry
 - Easy to extend for additional webhook events
 
 ---
 
 ## Architecture
 
-```
+```text
                 BookStack
                     │
-             Webhook Event
+             Webhook event
                     │
                     ▼
       BookStack Notify Transformer
                     │
-      Enrich via REST API
+        BookStack REST API lookup
                     │
                     ▼
                Apprise API
                     │
       ┌─────────────┼─────────────┐
       │             │             │
-    Email       Telegram      Discord
-      │         Teams         Slack
-      └────────── ... 100+ services ...
+    Email       Telegram       Discord
+                  Teams          Slack
+      └────────── many other services ──────────┘
 ```
 
 ---
@@ -65,32 +71,35 @@ The result is rich notifications that are immediately useful without requiring a
 ## Supported Events
 
 | Event | Status |
-|--------|--------|
-| comment_create | ✅ |
-| page_create | 🚧 |
-| page_update | 🚧 |
-| page_delete | 🚧 |
-| chapter_create | 🚧 |
-| chapter_update | 🚧 |
-| chapter_delete | 🚧 |
-| book_create | 🚧 |
-| book_update | 🚧 |
-| book_delete | 🚧 |
+|---|---|
+| `comment_create` | ✅ Supported |
+| `page_create` | 🚧 Planned |
+| `page_update` | 🚧 Planned |
+| `page_delete` | 🚧 Planned |
+| `chapter_create` | 🚧 Planned |
+| `chapter_update` | 🚧 Planned |
+| `chapter_delete` | 🚧 Planned |
+| `book_create` | 🚧 Planned |
+| `book_update` | 🚧 Planned |
+| `book_delete` | 🚧 Planned |
 
-The initial focus of this project is `comment_create`, since BookStack's webhook payload for comments does not contain the information typically needed for useful notifications.
+The initial focus is `comment_create`, because comment webhook payloads do not contain all information typically required for a useful notification.
 
-Additional events will be improved over time.
+Support for additional events will be expanded over time.
 
 ---
 
-# Quick Start
+## Quick Start
 
-## Docker Compose
+### Docker Compose
+
+Create a `docker-compose.yml` file:
 
 ```yaml
 services:
   bookstack-notify-transformer:
     image: ghcr.io/bezibaerchen/bookstack-notify-transformer:latest
+    container_name: bookstack-notify-transformer
     restart: unless-stopped
 
     env_file:
@@ -100,57 +109,129 @@ services:
       - "8080:8080"
 ```
 
+Create a `.env` file:
+
+```env
+BOOKSTACK_URL=https://bookstack.example.com
+BOOKSTACK_TOKEN_ID=xxxxxxxxxxxxxxxx
+BOOKSTACK_TOKEN_SECRET=xxxxxxxxxxxxxxxx
+APPRISE_URL=https://apprise.example.com/notify/bookstack
+LOG_LEVEL=INFO
+```
+
+Start the container:
+
+```bash
+docker compose up -d
+```
+
+Check its status:
+
+```bash
+docker compose ps
+```
+
+View the logs:
+
+```bash
+docker compose logs -f
+```
+
+Test the health endpoint:
+
+```bash
+curl http://localhost:8080/health
+```
+
+To stop the service:
+
+```bash
+docker compose down
+```
+
+---
+
+## Container Images
+
+Container images are published to the GitHub Container Registry:
+
+```text
+ghcr.io/bezibaerchen/bookstack-notify-transformer
+```
+
+Use the latest published image:
+
+```yaml
+image: ghcr.io/bezibaerchen/bookstack-notify-transformer:latest
+```
+
+For production deployments, pinning the image to a specific release tag is recommended:
+
+```yaml
+image: ghcr.io/bezibaerchen/bookstack-notify-transformer:0.1.1
+```
+
+Available packages and versions can be found in the repository's GitHub Packages section.
+
 ---
 
 ## Environment Variables
 
-| Variable | Description |
-|-----------|-------------|
-| BOOKSTACK_URL | Base URL of your BookStack instance |
-| BOOKSTACK_TOKEN_ID | API Token ID |
-| BOOKSTACK_TOKEN_SECRET | API Token Secret |
-| APPRISE_URL | Apprise API endpoint |
-| LOG_LEVEL | Logging level (default: INFO) |
+| Variable | Required | Description |
+|---|---:|---|
+| `BOOKSTACK_URL` | Yes | Base URL of the BookStack instance |
+| `BOOKSTACK_TOKEN_ID` | Yes | BookStack API token ID |
+| `BOOKSTACK_TOKEN_SECRET` | Yes | BookStack API token secret |
+| `APPRISE_URL` | Yes | Apprise API notification endpoint |
+| `LOG_LEVEL` | No | Logging level, defaults to `INFO` |
 
 Example:
 
 ```env
 BOOKSTACK_URL=https://bookstack.example.com
-
 BOOKSTACK_TOKEN_ID=xxxxxxxxxxxxxxxx
-
 BOOKSTACK_TOKEN_SECRET=xxxxxxxxxxxxxxxx
-
 APPRISE_URL=https://apprise.example.com/notify/bookstack
-
 LOG_LEVEL=INFO
 ```
 
+Do not commit your `.env` file or expose API tokens, webhook secrets or internal URLs in public issues and logs.
+
 ---
 
-# BookStack Configuration
+## BookStack Configuration
 
-Create a new webhook in BookStack.
+Create a new webhook in BookStack and point it to the transformer endpoint.
 
-Example:
+Example when both services use the same Docker network:
 
-```
-Webhook URL
-
+```text
 http://bookstack-notify-transformer:8080/bookstack
 ```
 
-Recommended events:
+Example through a reverse proxy:
 
-- comment_create
+```text
+https://notify-transformer.example.com/bookstack
+```
 
-Additional events can also be enabled.
+Enable the following event:
+
+```text
+comment_create
+```
+
+Additional BookStack events may be enabled, but only events listed as supported are guaranteed to produce fully enriched notifications.
+
+The transformer must be reachable from the BookStack instance. Avoid exposing it directly to the public internet unless required. Prefer a reverse proxy with HTTPS and appropriate access restrictions.
 
 ---
 
-# Apprise Configuration
+## Apprise Configuration
 
-Example:
+The transformer sends notifications to an existing Apprise API endpoint.
+
+Example Apprise configuration:
 
 ```yaml
 version: 1
@@ -159,98 +240,140 @@ urls:
   - mailto://smtp.example.com:25/?from=bookstack@example.com&to=admin@example.com
 ```
 
+Apprise can forward notifications to email, Telegram, Discord, Microsoft Teams, Slack and many other supported services.
+
 ---
 
-# API
+## API Endpoints
 
-## Health
+### Webhook Endpoint
 
+```http
+POST /bookstack
 ```
+
+Receives webhook events from BookStack.
+
+### Health Endpoint
+
+```http
 GET /health
 ```
 
-Response
+Example response:
 
 ```json
 {
   "ok": true,
   "service": "bookstack-notify-transformer",
-  "version": "1.0.0"
+  "version": "0.1.1"
 }
 ```
 
----
+### Service Information
 
-## Root
-
-```
+```http
 GET /
 ```
 
-Returns service information.
+Returns basic information about the running service.
 
 ---
 
-# Development
+## Development
 
-Clone the repository
+Clone the repository:
 
 ```bash
 git clone https://github.com/bezibaerchen/bookstack-notify-transformer.git
-
 cd bookstack-notify-transformer
 ```
 
-Create a virtual environment
+Create and activate a virtual environment:
 
 ```bash
 python3 -m venv .venv
-
 source .venv/bin/activate
 ```
 
-Install dependencies
+Install the dependencies:
 
 ```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-Run locally
+Run the application locally:
 
 ```bash
 python app.py
 ```
 
-Run tests
+Run the test suite:
 
 ```bash
 pytest
 ```
 
+Build the container locally:
+
+```bash
+docker build -t bookstack-notify-transformer:local .
+```
+
+Run the local container:
+
+```bash
+docker run --rm \
+  --env-file .env \
+  -p 8080:8080 \
+  bookstack-notify-transformer:local
+```
+
 ---
 
-# Roadmap
+## Roadmap
 
-- Better support for page events
-- Better support for chapter events
-- Better support for book events
-- Notification templates
+Planned improvements include:
+
+- Enriched page event notifications
+- Enriched chapter event notifications
+- Enriched book event notifications
+- Customizable notification templates
 - Multiple notification formats
-- Additional notification providers
-- Unit tests
-- GitHub Container Registry
-- Automatic Docker image publishing
+- Improved validation and error handling
+- Additional automated tests
+- More configuration examples
+- Support for further BookStack webhook events
+
+Feature requests and contributions are welcome.
 
 ---
 
-# Contributing
+## Contributing
 
-Issues, ideas and pull requests are always welcome.
+Issues, ideas and pull requests are welcome.
 
-If you have improvements or additional webhook support, feel free to contribute.
+Before contributing, please read the [contributing guidelines](CONTRIBUTING.md).
+
+For larger changes, consider opening an issue first so the proposed implementation can be discussed.
 
 ---
 
-# License
+## Security
 
-MIT License
+Do not report security vulnerabilities through public GitHub issues.
+
+Please follow the instructions in the [security policy](SECURITY.md) and use GitHub's private vulnerability reporting feature.
+
+---
+
+## Code of Conduct
+
+Participation in this project is governed by the [Code of Conduct](CODE_OF_CONDUCT.md).
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
